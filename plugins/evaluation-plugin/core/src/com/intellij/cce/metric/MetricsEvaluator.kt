@@ -31,6 +31,8 @@ class MetricsEvaluator private constructor(private val evaluationType: String) {
     registerMetric(RecallMetric())
     registerMetric(MeanLatencyMetric())
     registerMetric(MaxLatencyMetric())
+    registerMetric(MeanPopupLatencyMetric())
+    registerMetric(MaxPopupLatencyMetric())
     registerMetric(MeanRankMetric())
     registerMetric(SessionsCountMetric())
   }
