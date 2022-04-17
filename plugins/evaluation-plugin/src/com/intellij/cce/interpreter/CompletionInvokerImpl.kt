@@ -44,8 +44,25 @@ class CompletionInvokerImpl(private val project: Project,
     const val LOG_MAX_LENGTH = 50
   }
 
+  class LookupShownListener : LookupListener {
+    var lookupShownMs: Long = -1
+      private set
+
+    override fun lookupShown(event: LookupEvent) {
+      lookupShownMs = System.currentTimeMillis()
+    }
+  }
+
+  private val lookupShownListener = LookupShownListener()
+
   init {
     TestModeFlags.set(CompletionAutoPopupHandler.ourTestingAutopopup, true)
+    project.messageBus.connect().subscribe(LookupManagerListener.TOPIC, object: LookupManagerListener {
+      override fun activeLookupChanged(oldLookup: Lookup?, newLookup: Lookup?) {
+        LOG.info("Subscribed to new lookup!")
+        newLookup?.addLookupListener(lookupShownListener)
+      }
+    })
   }
 
   private val completionType = when (completionType) {
@@ -71,8 +88,9 @@ class CompletionInvokerImpl(private val project: Project,
     val isNew = LookupManager.getActiveLookup(editor) == null
     val activeLookup = LookupManager.getActiveLookup(editor) ?: invokeCompletion(expectedText, prefix)
     val latency = System.currentTimeMillis() - start
+    val popupLatency = lookupShownListener.lookupShownMs - start;
     if (activeLookup == null) {
-      return com.intellij.cce.core.Lookup.fromExpectedText(expectedText, prefix ?: "", emptyList(), latency, isNew = isNew)
+      return com.intellij.cce.core.Lookup.fromExpectedText(expectedText, prefix ?: "", emptyList(), latency, popupLatency, isNew = isNew)
     }
 
     val lookup = activeLookup as LookupImpl
@@ -83,7 +101,7 @@ class CompletionInvokerImpl(private val project: Project,
     )
     val suggestions = lookup.items.map { it.asSuggestion() }
 
-    return com.intellij.cce.core.Lookup.fromExpectedText(expectedText, lookup.prefix(), suggestions, latency, resultFeatures, isNew)
+    return com.intellij.cce.core.Lookup.fromExpectedText(expectedText, lookup.prefix(), suggestions, latency, popupLatency, resultFeatures, isNew)
   }
 
   override fun finishCompletion(expectedText: String, prefix: String): Boolean {

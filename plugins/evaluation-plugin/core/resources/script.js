@@ -87,7 +87,7 @@ function updatePopup(sessionDiv) {
     popup.setAttribute("class", "autocomplete-items");
     const prefixDiv = document.createElement("DIV");
     prefixDiv.setAttribute("style", "background-color: lightgrey;");
-    prefixDiv.innerHTML = `prefix: &quot;${lookup["prefix"]}&quot;; latency: ${lookup["latency"]}`;
+    prefixDiv.innerHTML = `prefix: &quot;${lookup["prefix"]}&quot;; latency: ${lookup["latency"]}; popupLatency: ${lookup["popupLatency"]}`;
     popup.appendChild(prefixDiv);
     const needAddFeatures = sessionDiv.classList.contains("suggestions");
     closeAllLists();
