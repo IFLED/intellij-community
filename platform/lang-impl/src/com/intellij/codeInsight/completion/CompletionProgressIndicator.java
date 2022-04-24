@@ -429,6 +429,8 @@ public class CompletionProgressIndicator extends ProgressIndicatorBase implement
       myHasPsiElements = true;
     }
 
+    lookupElement.putUserDataIfAbsent(LookupElement.ADD_IN_INDICATOR_TIMESTAMP, System.currentTimeMillis());
+
     boolean forceMiddleMatch = lookupElement.getUserData(BaseCompletionLookupArranger.FORCE_MIDDLE_MATCH) != null;
     if (forceMiddleMatch) {
       myArranger.associateSorter(lookupElement, (CompletionSorterImpl)item.getSorter());

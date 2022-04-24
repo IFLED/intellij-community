@@ -288,7 +288,13 @@ class CompletionInvokerImpl(private val project: Project,
 
     val contributor = getUserData(BaseCompletionService.LOOKUP_ELEMENT_CONTRIBUTOR)!!::class.simpleName
     val createdLatency = (getUserData(LookupElement.CREATED_TIMESTAMP) ?: 0) - start
-    return Suggestion(insertedText, presentationText, sourceFromPresentation(presentation), createdLatency, contributor ?: "<emptyContributor>")
+    val resultsetLatency = (getUserData(LookupElement.ADD_IN_RESULTSET_TIMESTAMP) ?: 0) - start
+    val indicatorLatency = (getUserData(LookupElement.ADD_IN_INDICATOR_TIMESTAMP) ?: 0) - start
+    val lookupLatency = (getUserData(LookupElement.ADD_IN_LOOKUP_TIMESTAMP) ?: 0) - start
+    val renderedLatency = (getUserData(LookupElement.RENDERED_TIMESTAMP) ?: 0) - start
+    return Suggestion(insertedText, presentationText, sourceFromPresentation(presentation),
+                      createdLatency, resultsetLatency, indicatorLatency, lookupLatency, renderedLatency,
+                      contributor ?: "<emptyContributor>")
   }
 
   private fun sourceFromPresentation(presentation: LookupElementPresentation): SuggestionSource {

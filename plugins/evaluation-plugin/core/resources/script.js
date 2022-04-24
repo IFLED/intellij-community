@@ -144,11 +144,13 @@ function addSuggestions(sessionDiv, popup, lookup) {
           contributor.innerHTML = " " + suggestions[i].contributor;
           suggestionDiv.appendChild(contributor);
 
-          let createdLatency = document.createElement("span");
-          createdLatency.setAttribute("class", "suggestion-p");
-          createdLatency.setAttribute("style", "color: #0000FF;");
-          createdLatency.innerHTML = " " + suggestions[i].createdLatency;
-          suggestionDiv.appendChild(createdLatency);
+          let latencies = document.createElement("span");
+          latencies.setAttribute("class", "suggestion-p");
+          latencies.setAttribute("style", "color: #0000FF;");
+          for (latency of ["createdLatency", "resultsetLatency", "indicatorLatency", "lookupLatency", "renderedLatency"]) {
+            latencies.innerHTML += " " + suggestions[i][latency];
+          }
+          suggestionDiv.appendChild(latencies);
         }
         popup.appendChild(suggestionDiv);
     }

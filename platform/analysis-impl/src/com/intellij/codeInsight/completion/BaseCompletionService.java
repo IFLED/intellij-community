@@ -118,6 +118,7 @@ public class BaseCompletionService extends CompletionService {
       CompletionResult matched = CompletionResult.wrap(element, getPrefixMatcher(), mySorter);
       if (matched != null) {
         element.putUserData(LOOKUP_ELEMENT_CONTRIBUTOR, myContributor);
+        element.putUserDataIfAbsent(LookupElement.ADD_IN_RESULTSET_TIMESTAMP, System.currentTimeMillis());
         passResult(matched);
       }
     }
