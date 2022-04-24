@@ -5,6 +5,7 @@ import com.intellij.cce.actions.UserEmulator
 import com.intellij.cce.actions.selectedWithoutPrefix
 import com.intellij.cce.core.*
 import com.intellij.cce.evaluation.CodeCompletionHandlerFactory
+import com.intellij.codeInsight.completion.BaseCompletionService
 import com.intellij.codeInsight.completion.CodeCompletionHandlerBase
 import com.intellij.codeInsight.completion.CompletionProgressIndicator
 import com.intellij.codeInsight.completion.CompletionType
@@ -59,7 +60,6 @@ class CompletionInvokerImpl(private val project: Project,
     TestModeFlags.set(CompletionAutoPopupHandler.ourTestingAutopopup, true)
     project.messageBus.connect().subscribe(LookupManagerListener.TOPIC, object: LookupManagerListener {
       override fun activeLookupChanged(oldLookup: Lookup?, newLookup: Lookup?) {
-        LOG.info("Subscribed to new lookup!")
         newLookup?.addLookupListener(lookupShownListener)
       }
     })
@@ -99,7 +99,7 @@ class CompletionInvokerImpl(private val project: Project,
       CommonFeatures(features.context, features.user, features.session),
       lookup.items.map { MLCompletionFeaturesUtil.getElementFeatures(lookup, it).features }
     )
-    val suggestions = lookup.items.map { it.asSuggestion() }
+    val suggestions = lookup.items.map { it.asSuggestion(start) }
 
     return com.intellij.cce.core.Lookup.fromExpectedText(expectedText, lookup.prefix(), suggestions, latency, popupLatency, resultFeatures, isNew)
   }
@@ -277,7 +277,7 @@ class CompletionInvokerImpl(private val project: Project,
 
   private fun hideLookup() = (LookupManager.getActiveLookup(editor) as? LookupImpl)?.hide()
 
-  private fun LookupElement.asSuggestion(): Suggestion {
+  private fun LookupElement.asSuggestion(start: Long): Suggestion {
     val presentation = LookupElementPresentation()
     renderElement(presentation)
     val presentationText = "${presentation.itemText}${presentation.tailText ?: ""}" +
@@ -285,7 +285,10 @@ class CompletionInvokerImpl(private val project: Project,
 
     val insertedText = if (lookupString.contains('>')) lookupString.replace(Regex("<.+>"), "")
     else lookupString
-    return Suggestion(insertedText, presentationText, sourceFromPresentation(presentation))
+
+    val contributor = getUserData(BaseCompletionService.LOOKUP_ELEMENT_CONTRIBUTOR)!!::class.simpleName
+    val createdLatency = (getUserData(LookupElement.CREATED_TIMESTAMP) ?: 0) - start
+    return Suggestion(insertedText, presentationText, sourceFromPresentation(presentation), createdLatency, contributor ?: "<emptyContributor>")
   }
 
   private fun sourceFromPresentation(presentation: LookupElementPresentation): SuggestionSource {

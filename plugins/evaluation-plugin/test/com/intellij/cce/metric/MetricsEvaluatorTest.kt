@@ -97,6 +97,8 @@ class MetricsEvaluatorTest {
       Suggestion(
         if (it == expected) EXPECTED else UNEXPECTED,
         presentationText = "",
-        SuggestionSource.STANDARD)
+        SuggestionSource.STANDARD,
+        createdTimestamp = 0,
+        contributor = "")
     }
 }

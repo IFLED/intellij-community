@@ -25,6 +25,8 @@ class SessionSerializer {
           val jsonObject = JsonObject()
           jsonObject.addProperty("text", escapeHtml(src.text))
           jsonObject.addProperty("presentationText", escapeHtml(src.presentationText))
+          jsonObject.addProperty("createdLatency", escapeHtml(src.createdLatency.toString()))
+          jsonObject.addProperty("contributor", escapeHtml(src.contributor))
           return jsonObject
         }
       })

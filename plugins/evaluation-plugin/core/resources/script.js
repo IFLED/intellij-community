@@ -130,20 +130,33 @@ function addSuggestions(sessionDiv, popup, lookup) {
         let suggestionDiv = document.createElement("DIV");
         suggestionDiv.setAttribute("class", "suggestion");
         suggestionDiv.setAttribute("id", `${getId(sessionDiv)} ${i}`);
-        let p = document.createElement(isCodeGolf ? "code" : "plaintext");
+        let p = document.createElement(isCodeGolf ? "code" : "span");
         p.setAttribute("class", "suggestion-p");
         if (sessions[sessionId].expectedText == suggestions[i].text) {
-            p.setAttribute("style", "font-weight: bold;");
+            p.setAttribute("style", "font-weight: bold; color: #FF0000;");
         }
         p.innerHTML = suggestions[i].presentationText;
         suggestionDiv.appendChild(p);
+        if (!isCodeGolf) {
+          let contributor = document.createElement("span");
+          contributor.setAttribute("class", "suggestion-p");
+          contributor.setAttribute("style", "color: #00FF00;");
+          contributor.innerHTML = " " + suggestions[i].contributor;
+          suggestionDiv.appendChild(contributor);
+
+          let createdLatency = document.createElement("span");
+          createdLatency.setAttribute("class", "suggestion-p");
+          createdLatency.setAttribute("style", "color: #0000FF;");
+          createdLatency.innerHTML = " " + suggestions[i].createdLatency;
+          suggestionDiv.appendChild(createdLatency);
+        }
         popup.appendChild(suggestionDiv);
     }
 }
 
 function updateElementFeatures(suggestionDiv) {
-    if (suggestionDiv.childElementCount === 2) {
-        suggestionDiv.removeChild(suggestionDiv.childNodes[1]);
+    if (suggestionDiv.childElementCount === 4) {
+        suggestionDiv.removeChild(suggestionDiv.childNodes[suggestionDiv.childNodes.length - 1]);
         return;
     }
     const parts = suggestionDiv.id.split(" ");
