@@ -14,23 +14,45 @@ abstract class LatencyMetric(override val name: String) : Metric {
     sessions.stream()
       .flatMap { session -> session.lookups.stream() }
       .forEach {
-        this.sample.add(it.latency.toDouble())
-        fileSample.add(it.latency.toDouble())
+        this.sample.add(extractLatency(it).toDouble())
+        fileSample.add(extractLatency(it).toDouble())
       }
     return compute(fileSample)
   }
+
+  abstract fun extractLatency(it: com.intellij.cce.core.Lookup) : Long
 
   abstract fun compute(sample: Sample): Double
 }
 
 class MaxLatencyMetric : LatencyMetric("Max Latency") {
+  override fun extractLatency (it: com.intellij.cce.core.Lookup) : Long = it.latency
+
   override fun compute(sample: Sample): Double = sample.max()
 
   override val valueType = MetricValueType.INT
 }
 
 class MeanLatencyMetric : LatencyMetric("Mean Latency") {
+  override fun extractLatency (it: com.intellij.cce.core.Lookup) : Long = it.latency
+
   override fun compute(sample: Sample): Double = sample.mean()
 
   override val valueType = MetricValueType.DOUBLE
+}
+
+class MaxPopupLatencyMetric : LatencyMetric("Max Popup Latency") {
+  override fun extractLatency (it: com.intellij.cce.core.Lookup) : Long = it.popupLatency
+
+  override fun compute(sample: Sample): Double = sample.max();
+
+  override val valueType = MetricValueType.DOUBLE;
+}
+
+class MeanPopupLatencyMetric : LatencyMetric("Mean Popup Latency") {
+  override fun extractLatency (it: com.intellij.cce.core.Lookup) : Long = it.popupLatency
+
+  override fun compute(sample: Sample): Double = sample.mean();
+
+  override val valueType = MetricValueType.DOUBLE;
 }

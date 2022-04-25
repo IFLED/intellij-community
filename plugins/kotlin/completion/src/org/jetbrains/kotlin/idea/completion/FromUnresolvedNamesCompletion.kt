@@ -61,7 +61,7 @@ class FromUnresolvedNamesCompletion(
             val lookupElement =
                 LookupElementBuilder.create(name).suppressAutoInsertion().assignPriority(ItemPriority.FROM_UNRESOLVED_NAME_SUGGESTION)
             lookupElement.putUserData(KotlinCompletionCharFilter.SUPPRESS_ITEM_SELECTION_BY_CHARS_ON_TYPING, Unit)
-            collector.addElement(lookupElement)
+            collector.addElement("kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", lookupElement)
         }
     }
 }

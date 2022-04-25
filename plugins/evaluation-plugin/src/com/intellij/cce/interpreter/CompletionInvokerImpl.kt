@@ -5,6 +5,7 @@ import com.intellij.cce.actions.UserEmulator
 import com.intellij.cce.actions.selectedWithoutPrefix
 import com.intellij.cce.core.*
 import com.intellij.cce.evaluation.CodeCompletionHandlerFactory
+import com.intellij.codeInsight.completion.BaseCompletionService
 import com.intellij.codeInsight.completion.CodeCompletionHandlerBase
 import com.intellij.codeInsight.completion.CompletionProgressIndicator
 import com.intellij.codeInsight.completion.CompletionType
@@ -44,8 +45,24 @@ class CompletionInvokerImpl(private val project: Project,
     const val LOG_MAX_LENGTH = 50
   }
 
+  class LookupShownListener : LookupListener {
+    var lookupShownMs: Long = -1
+      private set
+
+    override fun lookupShown(event: LookupEvent) {
+      lookupShownMs = System.currentTimeMillis()
+    }
+  }
+
+  private val lookupShownListener = LookupShownListener()
+
   init {
     TestModeFlags.set(CompletionAutoPopupHandler.ourTestingAutopopup, true)
+    project.messageBus.connect().subscribe(LookupManagerListener.TOPIC, object: LookupManagerListener {
+      override fun activeLookupChanged(oldLookup: Lookup?, newLookup: Lookup?) {
+        newLookup?.addLookupListener(lookupShownListener)
+      }
+    })
   }
 
   private val completionType = when (completionType) {
@@ -71,8 +88,9 @@ class CompletionInvokerImpl(private val project: Project,
     val isNew = LookupManager.getActiveLookup(editor) == null
     val activeLookup = LookupManager.getActiveLookup(editor) ?: invokeCompletion(expectedText, prefix)
     val latency = System.currentTimeMillis() - start
+    val popupLatency = lookupShownListener.lookupShownMs - start;
     if (activeLookup == null) {
-      return com.intellij.cce.core.Lookup.fromExpectedText(expectedText, prefix ?: "", emptyList(), latency, isNew = isNew)
+      return com.intellij.cce.core.Lookup.fromExpectedText(expectedText, prefix ?: "", emptyList(), latency, popupLatency, isNew = isNew)
     }
 
     val lookup = activeLookup as LookupImpl
@@ -81,9 +99,9 @@ class CompletionInvokerImpl(private val project: Project,
       CommonFeatures(features.context, features.user, features.session),
       lookup.items.map { MLCompletionFeaturesUtil.getElementFeatures(lookup, it).features }
     )
-    val suggestions = lookup.items.map { it.asSuggestion() }
+    val suggestions = lookup.items.map { it.asSuggestion(start) }
 
-    return com.intellij.cce.core.Lookup.fromExpectedText(expectedText, lookup.prefix(), suggestions, latency, resultFeatures, isNew)
+    return com.intellij.cce.core.Lookup.fromExpectedText(expectedText, lookup.prefix(), suggestions, latency, popupLatency, resultFeatures, isNew)
   }
 
   override fun finishCompletion(expectedText: String, prefix: String): Boolean {
@@ -259,7 +277,7 @@ class CompletionInvokerImpl(private val project: Project,
 
   private fun hideLookup() = (LookupManager.getActiveLookup(editor) as? LookupImpl)?.hide()
 
-  private fun LookupElement.asSuggestion(): Suggestion {
+  private fun LookupElement.asSuggestion(start: Long): Suggestion {
     val presentation = LookupElementPresentation()
     renderElement(presentation)
     val presentationText = "${presentation.itemText}${presentation.tailText ?: ""}" +
@@ -267,7 +285,19 @@ class CompletionInvokerImpl(private val project: Project,
 
     val insertedText = if (lookupString.contains('>')) lookupString.replace(Regex("<.+>"), "")
     else lookupString
-    return Suggestion(insertedText, presentationText, sourceFromPresentation(presentation))
+
+    val createdLatency = (getUserData(LookupElement.CREATED_TIMESTAMP) ?: 0) - start
+    val resultsetLatency = (getUserData(LookupElement.ADD_IN_RESULTSET_TIMESTAMP) ?: 0) - start
+    val indicatorLatency = (getUserData(LookupElement.ADD_IN_INDICATOR_TIMESTAMP) ?: 0) - start
+    val lookupLatency = (getUserData(LookupElement.ADD_IN_LOOKUP_TIMESTAMP) ?: 0) - start
+    val renderedLatency = (getUserData(LookupElement.RENDERED_TIMESTAMP) ?: 0) - start
+
+    val contributor = getUserData(BaseCompletionService.LOOKUP_ELEMENT_CONTRIBUTOR)!!::class.simpleName ?: "=emptyContributor="
+    val contributorKind = getUserData(LookupElement.CONTRIBUTOR_KIND) ?: "=emptyContributorKind="
+
+    return Suggestion(insertedText, presentationText, sourceFromPresentation(presentation),
+                      createdLatency, resultsetLatency, indicatorLatency, lookupLatency, renderedLatency,
+                      contributor, contributorKind)
   }
 
   private fun sourceFromPresentation(presentation: LookupElementPresentation): SuggestionSource {

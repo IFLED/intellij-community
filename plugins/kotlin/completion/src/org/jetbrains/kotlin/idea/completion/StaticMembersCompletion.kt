@@ -110,7 +110,9 @@ class StaticMembersCompletion(
     fun completeFromImports(file: KtFile, collector: LookupElementsCollector) {
         val factory = decoratedLookupElementFactory(ItemPriority.STATIC_MEMBER_FROM_IMPORTS)
         membersFromImports(file).forEach { descriptor ->
-            factory.createStandardLookupElementsForDescriptor(descriptor, useReceiverTypes = true).forEach(collector::addElement)
+            factory.createStandardLookupElementsForDescriptor(descriptor, useReceiverTypes = true).forEach {
+                    collector.addElement("kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", it)
+            }
             collector.flushToResultSet()
         }
     }
@@ -140,7 +142,9 @@ class StaticMembersCompletion(
             nameFilter = { prefixMatcher.prefixMatches(it) },
             processor = { descriptor ->
                 if (descriptor !in alreadyAdded) {
-                    factory.createStandardLookupElementsForDescriptor(descriptor, useReceiverTypes = true).forEach(collector::addElement)
+                    factory.createStandardLookupElementsForDescriptor(descriptor, useReceiverTypes = true).forEach {
+                        collector.addElement("kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", it)
+                    }
                     collector.flushToResultSet()
                 }
             }
@@ -170,7 +174,9 @@ class StaticMembersCompletion(
             nameFilter = { prefixMatcher.prefixMatches(it) },
             processor = { callableDescriptor ->
                 if (callableDescriptor.isExtension && callableDescriptor !in alreadyAdded) {
-                    factory.createStandardLookupElementsForDescriptor(callableDescriptor, useReceiverTypes = true).forEach(collector::addElement)
+                    factory.createStandardLookupElementsForDescriptor(callableDescriptor, useReceiverTypes = true).forEach {
+                        collector.addElement("kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", it)
+                    }
                     collector.flushToResultSet()
                 }
             }
@@ -180,7 +186,9 @@ class StaticMembersCompletion(
     fun completeFromIndices(indicesHelper: KotlinIndicesHelper, collector: LookupElementsCollector) {
         val factory = decoratedLookupElementFactory(ItemPriority.STATIC_MEMBER)
         processMembersFromIndices(indicesHelper) { descriptor ->
-            factory.createStandardLookupElementsForDescriptor(descriptor, useReceiverTypes = true).forEach(collector::addElement)
+            factory.createStandardLookupElementsForDescriptor(descriptor, useReceiverTypes = true).forEach {
+                collector.addElement("kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", it)
+            }
             collector.flushToResultSet()
         }
     }

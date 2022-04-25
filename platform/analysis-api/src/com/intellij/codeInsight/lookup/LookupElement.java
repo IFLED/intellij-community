@@ -5,6 +5,7 @@ import com.intellij.codeInsight.completion.InsertHandler;
 import com.intellij.codeInsight.completion.InsertionContext;
 import com.intellij.navigation.PsiElementNavigationItem;
 import com.intellij.openapi.util.ClassConditionKey;
+import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.UserDataHolderBase;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.ResolveResult;
@@ -26,6 +27,12 @@ import java.util.Set;
  */
 public abstract class LookupElement extends UserDataHolderBase {
   public static final LookupElement[] EMPTY_ARRAY = new LookupElement[0];
+  public static final Key<Long> CREATED_TIMESTAMP = Key.create("CREATED_TIMESTAMP");
+  public static final Key<Long> ADD_IN_RESULTSET_TIMESTAMP = Key.create("ADD_IN_RESULTSET_TIMESTAMP");
+  public static final Key<Long> ADD_IN_INDICATOR_TIMESTAMP = Key.create("ADD_IN_INDICATOR_TIMESTAMP");
+  public static final Key<Long> ADD_IN_LOOKUP_TIMESTAMP = Key.create("ADD_IN_LOOKUP_TIMESTAMP");
+  public static final Key<Long> RENDERED_TIMESTAMP = Key.create("RENDERED_TIMESTAMP");
+  public static final Key<String> CONTRIBUTOR_KIND = Key.create("CONTRIBUTOR_KIND");
 
   /**
    * @return the string which will be inserted into the editor when this lookup element is chosen

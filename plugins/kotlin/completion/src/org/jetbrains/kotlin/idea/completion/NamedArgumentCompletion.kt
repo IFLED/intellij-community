@@ -60,7 +60,7 @@ object NamedArgumentCompletion {
                 .withIcon(KotlinIcons.PARAMETER)
                 .withInsertHandler(NamedArgumentInsertHandler(name))
             lookupElement.putUserData(SmartCompletionInBasicWeigher.NAMED_ARGUMENT_KEY, Unit)
-            collector.addElement(lookupElement)
+            collector.addElement("kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", lookupElement)
         }
     }
 

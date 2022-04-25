@@ -87,7 +87,7 @@ function updatePopup(sessionDiv) {
     popup.setAttribute("class", "autocomplete-items");
     const prefixDiv = document.createElement("DIV");
     prefixDiv.setAttribute("style", "background-color: lightgrey;");
-    prefixDiv.innerHTML = `prefix: &quot;${lookup["prefix"]}&quot;; latency: ${lookup["latency"]}`;
+    prefixDiv.innerHTML = `prefix: &quot;${lookup["prefix"]}&quot;; latency: ${lookup["latency"]}; popupLatency: ${lookup["popupLatency"]}`;
     popup.appendChild(prefixDiv);
     const needAddFeatures = sessionDiv.classList.contains("suggestions");
     closeAllLists();
@@ -130,20 +130,36 @@ function addSuggestions(sessionDiv, popup, lookup) {
         let suggestionDiv = document.createElement("DIV");
         suggestionDiv.setAttribute("class", "suggestion");
         suggestionDiv.setAttribute("id", `${getId(sessionDiv)} ${i}`);
-        let p = document.createElement(isCodeGolf ? "code" : "plaintext");
+        let p = document.createElement(isCodeGolf ? "code" : "span");
         p.setAttribute("class", "suggestion-p");
         if (sessions[sessionId].expectedText == suggestions[i].text) {
-            p.setAttribute("style", "font-weight: bold;");
+            p.setAttribute("style", "font-weight: bold; color: #FF0000;");
         }
         p.innerHTML = suggestions[i].presentationText;
         suggestionDiv.appendChild(p);
+        if (!isCodeGolf) {
+          let contributor = document.createElement("span");
+          contributor.setAttribute("class", "suggestion-p");
+          contributor.setAttribute("style", "color: #00FF00;");
+          contributor.innerHTML = " " + suggestions[i].contributor;
+          contributor.innerHTML += "_" + suggestions[i].contributorKind;
+          suggestionDiv.appendChild(contributor);
+
+          let latencies = document.createElement("span");
+          latencies.setAttribute("class", "suggestion-p");
+          latencies.setAttribute("style", "color: #0000FF;");
+          for (latency of ["createdLatency", "resultsetLatency", "indicatorLatency", "lookupLatency", "renderedLatency"]) {
+            latencies.innerHTML += " " + suggestions[i][latency];
+          }
+          suggestionDiv.appendChild(latencies);
+        }
         popup.appendChild(suggestionDiv);
     }
 }
 
 function updateElementFeatures(suggestionDiv) {
-    if (suggestionDiv.childElementCount === 2) {
-        suggestionDiv.removeChild(suggestionDiv.childNodes[1]);
+    if (suggestionDiv.childElementCount === 4) {
+        suggestionDiv.removeChild(suggestionDiv.childNodes[suggestionDiv.childNodes.length - 1]);
         return;
     }
     const parts = suggestionDiv.id.split(" ");

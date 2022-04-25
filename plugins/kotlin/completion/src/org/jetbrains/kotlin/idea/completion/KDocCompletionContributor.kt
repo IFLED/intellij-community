@@ -88,7 +88,10 @@ class KDocNameCompletionSession(
         getParamDescriptors(declarationDescriptor)
             .filter { it.name.asString() !in documentedParameters }
             .forEach {
-                collector.addElement(basicLookupElementFactory.createLookupElement(it, parametersAndTypeGrayed = true))
+                collector.addElement(
+                    "kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}",
+                    basicLookupElementFactory.createLookupElement(it, parametersAndTypeGrayed = true)
+                )
             }
     }
 
@@ -117,6 +120,7 @@ class KDocNameCompletionSession(
             val element = basicLookupElementFactory.createLookupElement(it, parametersAndTypeGrayed = true)
             collector.addElement(
                 // insert only plain name here, no qualifier/parentheses/etc.
+                "kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}",
                 LookupElementDecorator.withDelegateInsertHandler(element, EmptyDeclarativeInsertHandler)
             )
         }

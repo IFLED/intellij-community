@@ -60,6 +60,7 @@ class LookupElementsCollector(
     }
 
     fun addDescriptorElements(
+        contributorKind: String,
         descriptors: Iterable<DeclarationDescriptor>,
         lookupElementFactory: AbstractLookupElementFactory,
         notImported: Boolean = false,
@@ -67,11 +68,12 @@ class LookupElementsCollector(
         prohibitDuplicates: Boolean = false
     ) {
         for (descriptor in descriptors) {
-            addDescriptorElements(descriptor, lookupElementFactory, notImported, withReceiverCast, prohibitDuplicates)
+            addDescriptorElements(contributorKind, descriptor, lookupElementFactory, notImported, withReceiverCast, prohibitDuplicates)
         }
     }
 
     fun addDescriptorElements(
+        contributorKind: String,
         descriptor: DeclarationDescriptor,
         lookupElementFactory: AbstractLookupElementFactory,
         notImported: Boolean = false,
@@ -86,12 +88,12 @@ class LookupElementsCollector(
             lookupElements = lookupElements.map { it.withReceiverCast() }
         }
 
-        addElements(lookupElements, notImported)
+        addElements("kinds-${contributorKind}-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", lookupElements, notImported)
 
         if (prohibitDuplicates && descriptor is CallableDescriptor) processedCallables.add(unwrapIfImportedFromObject(descriptor))
     }
 
-    fun addElement(element: LookupElement, notImported: Boolean = false) {
+    fun addElement(contributorKind: String, element: LookupElement, notImported: Boolean = false) {
         if (!prefixMatcher.prefixMatches(element)) {
             return
         }
@@ -100,12 +102,14 @@ class LookupElementsCollector(
             if ((descriptor as? MemberDescriptor)?.isExpect == true) return
         }
 
+        element.putUserDataIfAbsent(LookupElement.CONTRIBUTOR_KIND, contributorKind);
+
         if (notImported) {
             element.putUserData(NOT_IMPORTED_KEY, Unit)
             if (isResultEmpty && elements.isEmpty()) { /* without these checks we may get duplicated items */
-                addElement(element.suppressAutoInsertion())
+                addElement("${contributorKind}-1-kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", element.suppressAutoInsertion())
             } else {
-                addElement(element)
+                addElement("${contributorKind}-2-kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", element)
             }
             return
         }
@@ -130,8 +134,10 @@ class LookupElementsCollector(
         bestMatchingDegree = max(bestMatchingDegree, matchingDegree)
     }
 
-    fun addElements(elements: Iterable<LookupElement>, notImported: Boolean = false) {
-        elements.forEach { addElement(it, notImported) }
+    fun addElements(contributorKind: String, elements: Iterable<LookupElement>, notImported: Boolean = false) {
+        elements.forEach {
+            addElement(contributorKind, it, notImported)
+        }
     }
 
     fun restartCompletionOnPrefixChange(prefixCondition: ElementPattern<String>) {

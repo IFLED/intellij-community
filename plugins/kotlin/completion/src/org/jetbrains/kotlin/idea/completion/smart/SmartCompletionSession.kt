@@ -71,7 +71,7 @@ class SmartCompletionSession(
         var inheritanceSearcher: InheritanceItemsSearcher? = null
         val contextVariableTypesForAdditionalItems = withCollectRequiredContextVariableTypes { lookupElementFactory ->
             val pair = smartCompletion!!.additionalItems(lookupElementFactory)
-            collector.addElements(pair.first)
+            collector.addElements("kinds-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", pair.first)
             inheritanceSearcher = pair.second
         }
 
@@ -81,8 +81,15 @@ class SmartCompletionSession(
                 if (referenceVariantsCollector != null) {
                     val (imported, notImported) = referenceVariantsCollector.collectReferenceVariants(descriptorKindFilter)
                         .excludeNonInitializedVariable()
-                    imported.forEach { collector.addElements(filter(it, lookupElementFactory)) }
-                    notImported.forEach { collector.addElements(filter(it, lookupElementFactory), notImported = true) }
+                    imported.forEach { collector.addElements(
+                        "kinds-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}",
+                        filter(it, lookupElementFactory)
+                    ) }
+                    notImported.forEach { collector.addElements(
+                        "kinds-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}",
+                        filter(it, lookupElementFactory),
+                        notImported = true
+                    ) }
                     referenceVariantsCollector.collectingFinished()
                 }
             }
@@ -99,21 +106,25 @@ class SmartCompletionSession(
                     lookupElementFactory
                 ).processVariables(contextVariablesProvider)
                 for ((invokeDescriptor, factory) in results) {
-                    collector.addElements(filter(invokeDescriptor, factory))
+                    collector.addElements("kinds-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", filter(invokeDescriptor, factory))
                 }
             }
 
             if (contextVariableTypesForAdditionalItems.any { contextVariablesProvider.functionTypeVariables(it).isNotEmpty() }) {
                 val additionalItems = smartCompletion!!.additionalItems(lookupElementFactory).first
-                collector.addElements(additionalItems)
+                collector.addElements("kinds-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", additionalItems)
             }
 
             if (filter != null &&
                 contextVariableTypesForReferenceVariants!!.any { contextVariablesProvider.functionTypeVariables(it).isNotEmpty() }
             ) {
                 val (imported, notImported) = referenceVariantsWithSingleFunctionTypeParameter()!!
-                imported.forEach { collector.addElements(filter(it, lookupElementFactory)) }
-                notImported.forEach { collector.addElements(filter(it, lookupElementFactory), notImported = true) }
+                imported.forEach { collector.addElements("kinds-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", filter(it, lookupElementFactory)) }
+                notImported.forEach { collector.addElements(
+                    "kinds-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}",
+                    filter(it, lookupElementFactory),
+                    notImported = true
+                ) }
             }
 
             flushToResultSet()
@@ -126,14 +137,18 @@ class SmartCompletionSession(
                         StaticMembersCompletion(prefixMatcher, resolutionFacade, lookupElementFactory, alreadyCollected, isJvmModule)
                     val decoratedFactory = staticMembersCompletion.decoratedLookupElementFactory(ItemPriority.STATIC_MEMBER_FROM_IMPORTS)
                     staticMembersCompletion.membersFromImports(file).flatMap { filter(it, decoratedFactory) }
-                        .forEach { collector.addElement(it) }
+                        .forEach { collector.addElement("kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", it) }
                 } else {
                     staticMembersCompletion = null
                 }
 
                 if (shouldCompleteTopLevelCallablesFromIndex()) {
                     processTopLevelCallables {
-                        collector.addElements(filter(it, lookupElementFactory), notImported = true)
+                        collector.addElements(
+                            "kinds-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}",
+                            filter(it, lookupElementFactory),
+                            notImported = true
+                        )
                         flushToResultSet()
                     }
                 }
@@ -143,9 +158,12 @@ class SmartCompletionSession(
                     if (variantsAndFactory != null) {
                         val variants = variantsAndFactory.first
                         @Suppress("NAME_SHADOWING") val lookupElementFactory = variantsAndFactory.second
-                        variants.imported.forEach { collector.addElements(filter(it, lookupElementFactory).map { it.withReceiverCast() }) }
+                        variants.imported.forEach { collector.addElements(
+                            "kinds-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}",
+                            filter(it, lookupElementFactory).map { it.withReceiverCast() }) }
                         variants.notImportedExtensions.forEach {
                             collector.addElements(
+                                "kinds-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}",
                                 filter(it, lookupElementFactory).map { element -> element.withReceiverCast() },
                                 notImported = true
                             )
@@ -158,7 +176,7 @@ class SmartCompletionSession(
                     val decoratedFactory = staticMembersCompletion.decoratedLookupElementFactory(ItemPriority.STATIC_MEMBER)
                     staticMembersCompletion.processMembersFromIndices(indicesHelper(false)) {
                         filter(it, decoratedFactory).forEach { element ->
-                            collector.addElement(element)
+                            collector.addElement("kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", element)
                             flushToResultSet()
                         }
                     }
@@ -169,7 +187,7 @@ class SmartCompletionSession(
 
         // it makes no sense to search inheritors if there is no reference because it means that we have prefix like "this@"
         inheritanceSearcher?.search({ prefixMatcher.prefixMatches(it) }) {
-            collector.addElement(it)
+            collector.addElement("kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", it)
             flushToResultSet()
         }
     }
@@ -198,7 +216,7 @@ class SmartCompletionSession(
 
                 val expectedInfos =
                     ExpectedInfos(bindingContext, resolutionFacade, indicesHelper(false)).calculateForArgument(dummyCall, dummyArgument)
-                collector.addElements(LambdaItems.collect(expectedInfos))
+                collector.addElements("kinds-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", LambdaItems.collect(expectedInfos))
             }
         }
     }

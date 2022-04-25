@@ -279,6 +279,8 @@ public class LookupImpl extends LightweightHint implements LookupEx, Disposable,
       return false;
     }
 
+    item.putUserDataIfAbsent(LookupElement.ADD_IN_LOOKUP_TIMESTAMP, System.currentTimeMillis());
+
     myCellRenderer.itemAdded(item, presentation);
     LookupArranger arranger = myArranger;
     arranger.registerMatcher(item, matcher);
@@ -1172,6 +1174,7 @@ public class LookupImpl extends LightweightHint implements LookupEx, Disposable,
       }
     }
     finally {
+      getListModel().toList().forEach(element -> element.putUserDataIfAbsent(LookupElement.RENDERED_TIMESTAMP, System.currentTimeMillis()));
       myUpdating = false;
       fireCurrentItemChanged(prevItem, getCurrentItem());
       fireUiRefreshed();

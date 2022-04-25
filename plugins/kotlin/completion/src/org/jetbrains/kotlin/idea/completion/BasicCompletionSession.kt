@@ -225,7 +225,7 @@ class BasicCompletionSession(
                         }
                     }
 
-                    collector.addElements(additionalItems)
+                    collector.addElements("kinds-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", additionalItems)
                 }
             }
 
@@ -283,7 +283,10 @@ class BasicCompletionSession(
                     }
                 }
 
-                packageNames.forEach { collector.addElement(basicLookupElementFactory.createLookupElementForPackage(it)) }
+                packageNames.forEach { collector.addElement(
+                    "kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}",
+                    basicLookupElementFactory.createLookupElementForPackage(it)
+                ) }
             }
 
             flushToResultSet()
@@ -302,7 +305,7 @@ class BasicCompletionSession(
                                 useReceiverTypes = true,
                             )
 
-                            collector.addElements(lookupElements)
+                            collector.addElements("kinds-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", lookupElements)
                         }
                 }
 
@@ -312,8 +315,13 @@ class BasicCompletionSession(
 
                 if (contextVariableTypesForReferenceVariants.any { contextVariablesProvider.functionTypeVariables(it).isNotEmpty() }) {
                     val (imported, notImported) = referenceVariantsWithSingleFunctionTypeParameter()!!
-                    collector.addDescriptorElements(imported, lookupElementFactory)
-                    collector.addDescriptorElements(notImported, lookupElementFactory, notImported = true)
+                    collector.addDescriptorElements("descriptor-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", imported, lookupElementFactory)
+                    collector.addDescriptorElements(
+                        "descriptor-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}",
+                        notImported,
+                        lookupElementFactory,
+                        notImported = true
+                    )
                 }
 
                 val staticMembersCompletion = StaticMembersCompletion(
@@ -336,12 +344,18 @@ class BasicCompletionSession(
                     if (variantsAndFactory != null) {
                         val variants = variantsAndFactory.first
                         val resultLookupElementFactory = variantsAndFactory.second
-                        collector.addDescriptorElements(variants.imported, resultLookupElementFactory, withReceiverCast = true)
                         collector.addDescriptorElements(
+                            "descriptor-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}",
+                            variants.imported,
+                            resultLookupElementFactory,
+                            withReceiverCast = true
+                        )
+                        collector.addDescriptorElements(
+                            "descriptor-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}",
                             variants.notImportedExtensions,
                             resultLookupElementFactory,
-                            withReceiverCast = true,
-                            notImported = true
+                            notImported = true,
+                            withReceiverCast = true
                         )
 
                         flushToResultSet()
@@ -385,7 +399,12 @@ class BasicCompletionSession(
         private fun completeNonImported(lookupElementFactory: LookupElementFactory) {
             if (shouldCompleteTopLevelCallablesFromIndex()) {
                 processTopLevelCallables {
-                    collector.addDescriptorElements(it, lookupElementFactory, notImported = true)
+                    collector.addDescriptorElements(
+                        "descriptor-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}",
+                        it,
+                        lookupElementFactory,
+                        notImported = true
+                    )
                     flushToResultSet()
                 }
             }
@@ -415,10 +434,18 @@ class BasicCompletionSession(
                         completionParameters = parameters,
                         indicesHelper = indicesHelper(true),
                         classifierDescriptorCollector = {
-                            collector.addElement(basicLookupElementFactory.createLookupElement(it), notImported = true)
+                            collector.addElement(
+                                "kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}",
+                                basicLookupElementFactory.createLookupElement(it),
+                                notImported = true
+                            )
                         },
                         javaClassCollector = {
-                            collector.addElement(basicLookupElementFactory.createLookupElementForJavaClass(it), notImported = true)
+                            collector.addElement(
+                                "kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}",
+                                basicLookupElementFactory.createLookupElementForJavaClass(it),
+                                notImported = true
+                            )
                         }
                     )
                 }
@@ -541,13 +568,14 @@ class BasicCompletionSession(
                             .onEach { foundDescriptors += it.original }
 
                         collector.addDescriptorElements(
-                            unique.toList(), factory,
+                            "descriptor-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", unique.toList(),
+                            factory,
                             prohibitDuplicates = true
                         )
 
                         collector.addDescriptorElements(
-                            uniqueNotImportedExtensions.toList(), factory,
-                            notImported = true, prohibitDuplicates = true
+                            "descriptor-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", uniqueNotImportedExtensions.toList(),
+                            factory, notImported = true, prohibitDuplicates = true
                         )
 
                         flushToResultSet()
@@ -605,7 +633,7 @@ class BasicCompletionSession(
                         lookupElement.putUserData(SmartCompletionInBasicWeigher.KEYWORD_VALUE_MATCHED_KEY, Unit)
                         lookupElement.putUserData(SMART_COMPLETION_ITEM_PRIORITY_KEY, priority)
                     }
-                    collector.addElement(lookupElement)
+                    collector.addElement("kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", lookupElement)
                 }
             }
 
@@ -625,7 +653,7 @@ class BasicCompletionSession(
                 val completionKeywordHandler = DefaultCompletionKeywordHandlerProvider.getHandlerForKeyword(keyword)
                 if (completionKeywordHandler != null) {
                     val lookups = completionKeywordHandler.createLookups(parameters, expression, lookupElement, project)
-                    collector.addElements(lookups)
+                    collector.addElements("kinds-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", lookups)
                     return@complete
                 }
 
@@ -634,6 +662,7 @@ class BasicCompletionSession(
                     "this" -> {
                         if (expression != null) {
                             collector.addElements(
+                                "kinds-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}",
                                 thisExpressionItems(
                                     bindingContext,
                                     expression,
@@ -642,26 +671,29 @@ class BasicCompletionSession(
                                 ).map { it.createLookupElement() })
                         } else {
                             // for completion in secondary constructor delegation call
-                            collector.addElement(lookupElement)
+                            collector.addElement("kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", lookupElement)
                         }
                     }
 
                     // if "return" is parsed correctly in the current context - insert it and all return@xxx items
                     "return" -> {
                         if (expression != null) {
-                            collector.addElements(returnExpressionItems(bindingContext, expression))
+                            collector.addElements(
+                                "kinds-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}",
+                                returnExpressionItems(bindingContext, expression)
+                            )
                         }
                     }
 
                     "override" -> {
-                        collector.addElement(lookupElement)
+                        collector.addElement("kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", lookupElement)
 
                         OverridesCompletion(collector, basicLookupElementFactory).complete(position, declaration = null)
                     }
 
                     "class" -> {
                         if (callTypeAndReceiver !is CallTypeAndReceiver.CALLABLE_REFERENCE) { // otherwise it should be handled by KeywordValues
-                            collector.addElement(lookupElement)
+                            collector.addElement("kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", lookupElement)
                         }
                     }
 
@@ -673,10 +705,10 @@ class BasicCompletionSession(
                             lookupElement.keywordProbability = KeywordProbability.LOW
                         }
 
-                        collector.addElement(lookupElement)
+                        collector.addElement("kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", lookupElement)
                     }
 
-                    else -> collector.addElement(lookupElement)
+                    else -> collector.addElement("kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", lookupElement)
                 }
             }
         }
@@ -752,7 +784,7 @@ class BasicCompletionSession(
             if (!(Name.isValidIdentifier(name) && Name.identifier(name).render() == name && name[0].isUpperCase())) return
             if ((parameters.originalFile as KtFile).declarations.any { it is KtClassOrObject && it.name == name }) return
 
-            collector.addElement(LookupElementBuilder.create(name))
+            collector.addElement("kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", LookupElementBuilder.create(name))
         }
 
         private fun declaration() = position.parent as KtNamedDeclaration
@@ -786,7 +818,7 @@ class BasicCompletionSession(
 
             superClasses
                 .map { basicLookupElementFactory.createLookupElement(it, qualifyNestedClasses = true, includeClassTypeArguments = false) }
-                .forEach { collector.addElement(it) }
+                .forEach { collector.addElement("kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", it) }
         }
     }
 
@@ -824,13 +856,15 @@ class BasicCompletionSession(
     private fun addReferenceVariantElements(lookupElementFactory: LookupElementFactory, descriptorKindFilter: DescriptorKindFilter) {
         fun addReferenceVariants(referenceVariants: ReferenceVariants) {
             collector.addDescriptorElements(
+                "descriptor-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}",
                 referenceVariantsHelper.excludeNonInitializedVariable(referenceVariants.imported, position),
-                lookupElementFactory, prohibitDuplicates = true
+                lookupElementFactory,
+                prohibitDuplicates = true
             )
 
             collector.addDescriptorElements(
-                referenceVariants.notImportedExtensions, lookupElementFactory,
-                notImported = true, prohibitDuplicates = true
+                "descriptor-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", referenceVariants.notImportedExtensions,
+                lookupElementFactory, notImported = true, prohibitDuplicates = true
             )
         }
 

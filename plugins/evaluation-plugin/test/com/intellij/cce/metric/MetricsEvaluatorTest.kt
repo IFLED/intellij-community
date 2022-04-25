@@ -90,13 +90,15 @@ class MetricsEvaluatorTest {
   }
 
   private fun createLookup(expected: Int?, total: Int): Lookup =
-    Lookup.fromExpectedText(EXPECTED, "", createSuggestions(total, expected), 0)
+    Lookup.fromExpectedText(EXPECTED, "", createSuggestions(total, expected), 0, 0)
 
   private fun createSuggestions(total: Int, expected: Int?): List<Suggestion> =
     (0 until total).map {
       Suggestion(
         if (it == expected) EXPECTED else UNEXPECTED,
         presentationText = "",
-        SuggestionSource.STANDARD)
+        SuggestionSource.STANDARD,
+        createdTimestamp = 0,
+        contributor = "")
     }
 }

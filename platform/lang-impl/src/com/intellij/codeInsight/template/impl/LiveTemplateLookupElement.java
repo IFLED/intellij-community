@@ -37,6 +37,7 @@ abstract public class LiveTemplateLookupElement extends LookupElement {
     this.sudden = sudden;
     myLookupString = lookupString;
     myWorthShowingInAutoPopup = worthShowingInAutoPopup;
+    putUserData(LookupElement.CREATED_TIMESTAMP, System.currentTimeMillis());
   }
 
   @NotNull
