@@ -142,6 +142,7 @@ function addSuggestions(sessionDiv, popup, lookup) {
           contributor.setAttribute("class", "suggestion-p");
           contributor.setAttribute("style", "color: #00FF00;");
           contributor.innerHTML = " " + suggestions[i].contributor;
+          contributor.innerHTML += "_" + suggestions[i].contributorKind;
           suggestionDiv.appendChild(contributor);
 
           let latencies = document.createElement("span");

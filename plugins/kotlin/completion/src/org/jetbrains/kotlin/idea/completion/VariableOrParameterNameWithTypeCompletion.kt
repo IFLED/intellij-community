@@ -117,7 +117,10 @@ class VariableOrParameterNameWithTypeCompletion(
         for ((lookupElement, countAndName) in lookupElementToCount) {
             val (count, name) = countAndName
             lookupElement.putUserData(PRIORITY_KEY, -count)
-            if (withType || !lookupNamesAdded.contains(name)) collector.addElement(lookupElement)
+            if (withType || !lookupNamesAdded.contains(name)) collector.addElement(
+                "kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}",
+                lookupElement
+            )
             lookupNamesAdded.add(name)
         }
     }
@@ -141,7 +144,11 @@ class VariableOrParameterNameWithTypeCompletion(
                 val lookupElement = MyLookupElement.create(parameterName, type, withType, lookupElementFactory)
                 if (lookupElement != null) {
                     lookupElement.putUserData(PRIORITY_KEY, userPrefix.length) // suggestions with longer user prefix get lower priority
-                    if (withType || !lookupNamesAdded.contains(parameterName)) collector.addElement(lookupElement, notImported)
+                    if (withType || !lookupNamesAdded.contains(parameterName)) collector.addElement(
+                        "kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}",
+                        lookupElement,
+                        notImported
+                    )
                     suggestionsByTypesAdded.add(type)
                     lookupNamesAdded.add(parameterName)
                 }

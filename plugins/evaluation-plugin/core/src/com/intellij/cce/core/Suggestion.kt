@@ -10,9 +10,10 @@ data class Suggestion(
   val lookupLatency: Long,
   val renderedLatency: Long,
   val contributor: String,
+  val contributorKind: String,
   val kind: SuggestionKind = SuggestionKind.ANY
 ) {
   fun withSuggestionKind(kind: SuggestionKind): Suggestion {
-    return Suggestion(text, presentationText, source, createdLatency, resultsetLatency, indicatorLatency, lookupLatency, renderedLatency, contributor, kind)
+    return Suggestion(text, presentationText, source, createdLatency, resultsetLatency, indicatorLatency, lookupLatency, renderedLatency, contributor, contributorKind, kind)
   }
 }

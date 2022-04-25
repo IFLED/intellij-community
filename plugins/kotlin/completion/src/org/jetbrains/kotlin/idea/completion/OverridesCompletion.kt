@@ -76,7 +76,7 @@ class OverridesCompletion(
 
             lookupElement.assignPriority(if (isImplement) ItemPriority.IMPLEMENT else ItemPriority.OVERRIDE)
 
-            collector.addElement(lookupElement)
+            collector.addElement("kind-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}", lookupElement)
         }
     }
 

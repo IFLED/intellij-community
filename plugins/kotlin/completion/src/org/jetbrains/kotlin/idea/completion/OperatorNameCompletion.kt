@@ -36,7 +36,8 @@ object OperatorNameCompletion {
     }
 
     fun doComplete(collector: LookupElementsCollector, descriptorNameFilter: (String) -> Boolean) {
-        collector.addElements(OperatorConventions.CONVENTION_NAMES.filter { descriptorNameFilter(it.asString()) }
-                                  .map(this::buildLookupElement))
+        collector.addElements("kinds-${Throwable().stackTrace[0].fileName}:${Throwable().stackTrace[0].lineNumber}",
+                              OperatorConventions.CONVENTION_NAMES.filter { descriptorNameFilter(it.asString()) }
+                                                        .map(this::buildLookupElement))
     }
 }

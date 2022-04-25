@@ -31,6 +31,7 @@ class SessionSerializer {
           jsonObject.addProperty("lookupLatency", escapeHtml(src.lookupLatency.toString()))
           jsonObject.addProperty("renderedLatency", escapeHtml(src.renderedLatency.toString()))
           jsonObject.addProperty("contributor", escapeHtml(src.contributor))
+          jsonObject.addProperty("contributorKind", escapeHtml(src.contributorKind))
           return jsonObject
         }
       })
