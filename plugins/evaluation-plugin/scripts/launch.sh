@@ -13,6 +13,9 @@ json=/Users/ifled/projects/csc/ide_perf_practice/detekt/completion-evaluation/20
 #     python3 script.py "$json"
 # done
 
-for json in /Users/ifled/projects/csc/ide_perf_practice/detekt/completion-evaluation/2022-05-02_16-55-43/data/files/jsons/*.json; do
-    python3 script.py "$json"
-done
+# for json in /Users/ifled/projects/csc/ide_perf_practice/detekt/completion-evaluation/2022-05-02_16-55-43/data/files/jsons/*.json; do
+#     python3 script.py "$json"
+# done
+
+dir=/Users/ifled/projects/csc/ide_perf_practice/detekt/completion-evaluation/2022-05-02_16-55-43/data/files/jsons
+python3 script.py "$dir"

@@ -1,5 +1,6 @@
 import collections
 import json
+import os
 import sys
 
 
@@ -255,10 +256,7 @@ class MeanApproxLatency(Metric):
         print(f"mean approx latency ({self._delay_ms}ms): {ratio:.3f} ({self._total_latency:.3f} / {self._count}, skpped = {self._skipped})")
 
 
-def process_file(path):
-    with open(path) as f:
-        obj = json.load(f)
-
+def make_all_metrics():
     metrics = [
         Recall(),
         ApproxRecall(delay_ms=50),
@@ -277,12 +275,23 @@ def process_file(path):
         MeanApproxLatency(delay_ms=100),
         MeanApproxLatency(delay_ms=200),
     ]
+    return metrics
+
+
+def process_file(path, agg_metrics=None):
+    with open(path) as f:
+        obj = json.load(f)
+
+    metrics = make_all_metrics()
 
     print(obj["filePath"])
 
     for session in obj["sessions"]:
         for metric in metrics:
             metric.update(session)
+        if agg_metrics:
+            for metric in agg_metrics:
+                metric.update(session)
         # variants = get_variants(session)
         # text = session["expectedText"]
 
@@ -293,10 +302,26 @@ def process_file(path):
         metric.print()
 
 
+def process_dir(path):
+    agg_metrics = make_all_metrics()
+    for root, dirs, files in os.walk(path):
+        for fname in files:
+            process_file(os.path.join(root, fname), agg_metrics)
+
+    print("aggregated metrics for all files:")
+    for metric in agg_metrics:
+        print("  ", end="")
+        metric.print()
+
+
 def main():
     print(sys.argv, file=sys.stderr)
     path = sys.argv[1]
-    process_file(path)
+
+    if os.path.isfile(path):
+        process_file(path)
+    else:
+        process_dir(path)
 
 
 if __name__ == "__main__":
