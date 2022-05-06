@@ -1,3 +1,4 @@
+import collections
 import json
 import sys
 
@@ -73,6 +74,40 @@ class ApproxRecall(Metric):
     def print(self):
         ratio = self._found / self._count if self._count else 0
         print(f"approx recall ({self._delay_ms}ms): {ratio:.3f} ({self._found} / {self._count})")
+
+
+class ContiguousKinds(Metric):
+    def __init__(self, latency_name):
+        self._good = 0
+        self._count = 0
+        self._latency_name = latency_name
+
+    def update(self, session):
+        lookups = session["_lookups"]
+        assert len(lookups) == 1
+
+        self._count += 1
+
+        if len(lookups[0]["suggestions"]) == 0:
+            return
+
+        pairs = [
+            (suggestion[self._latency_name], (suggestion["contributor"], suggestion["contributorKind"]))
+            for suggestion in lookups[0]["suggestions"]
+        ]
+        pairs.sort()
+        kinds = [
+            pair[1]
+            for ind, pair in enumerate(pairs)
+            if ind == 0 or pair[1] != pairs[ind-1][1]
+        ]
+        counter = collections.Counter(kinds)
+        self._good += counter.most_common(1)[0][1] == 1
+
+
+    def print(self):
+        ratio = self._good / self._count if self._count else 0
+        print(f"contiguous ({self._latency_name}): {ratio:.3f} ({self._good} / {self._count})")
 
 
 class MeanPopupLatency(Metric):
@@ -229,6 +264,11 @@ def process_file(path):
         ApproxRecall(delay_ms=50),
         ApproxRecall(delay_ms=100),
         ApproxRecall(delay_ms=200),
+        ContiguousKinds("createdLatency"),
+        ContiguousKinds("resultsetLatency"),
+        ContiguousKinds("indicatorLatency"),
+        ContiguousKinds("lookupLatency"),
+        ContiguousKinds("renderedLatency"),
         MeanPopupLatency(),
         MeanOracleMinLatency(),
         MeanOracleMeanLatency(),
