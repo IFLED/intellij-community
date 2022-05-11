@@ -57,6 +57,32 @@ class Recall(Metric):
         print(f"recall: {ratio:.3f} ({self._found} / {self._count})")
 
 
+class ContributorKindRecall(Metric):
+    def __init__(self):
+        self._kinds = collections.Counter()
+        self._count = 0
+
+    def update(self, session):
+        text = session["expectedText"]
+        # import ipdb; ipdb.set_trace(context=15)
+
+        lookups = session["_lookups"]
+        assert len(lookups) == 1
+
+        for suggestion in lookups[0]["suggestions"]:
+            kind = suggestion["contributorKind"]
+            hypo = suggestion["text"]
+            self._kinds[kind] += text == hypo
+
+        self._count += 1
+
+    def print(self):
+        print(f"recall by contributor kinds:")
+        for kind, cnt in self._kinds.most_common():
+            ratio = cnt / self._count if self._count else 0
+            print(f"    {ratio:.3f} ({cnt} / {self._count}) - {kind}")
+
+
 class ApproxRecall(Metric):
     def __init__(self, delay_ms):
         self._found = 0
@@ -103,6 +129,16 @@ class ContiguousKinds(Metric):
             if ind == 0 or pair[1] != pairs[ind-1][1]
         ]
         counter = collections.Counter(kinds)
+
+        # if self._latency_name == "createdLatency" and counter.most_common(1)[0][1] == 1:
+        #     for pair in pairs:
+        #         print(pair)
+        #     ## import pprint
+        #     ## pprint.pprint( sorted([(item["createdLatency"], item["text"], item["contributorKind"]) for item in lookups[0]["suggestions"]]))
+        #     ## import pprint; pprint.pprint( sorted([(item["createdLatency"], item["resultsetLatency"], item["lookupLatency"], item["indicatorLatency"], item["renderedLatency"], item["contributorKind"], item["text"]) for item in lookups[0]["suggestions"]]), width=300)
+        #     ## import pprint; pprint.pprint( sorted([(item["createdLatency"], item["resultsetLatency"], item["lookupLatency"], item["contributorKind"], item["text"]) for item in lookups[0]["suggestions"]]), width=300)
+        #     import ipdb; ipdb.set_trace(context=15)
+
         self._good += counter.most_common(1)[0][1] == 1
 
 
@@ -271,9 +307,8 @@ def make_all_metrics():
         MeanOracleMinLatency(),
         MeanOracleMeanLatency(),
         MeanOracleMaxLatency(),
-        MeanApproxLatency(delay_ms=50),
-        MeanApproxLatency(delay_ms=100),
-        MeanApproxLatency(delay_ms=200),
+        MeanApproxLatency(delay_ms=0),
+        ContributorKindRecall(),
     ]
     return metrics
 
