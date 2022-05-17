@@ -103,23 +103,15 @@ class ApproxRecall(Metric):
         print(f"approx recall ({self._delay_ms}ms): {ratio:.3f} ({self._found} / {self._count})")
 
 
-class ContiguousKinds(Metric):
-    def __init__(self, latency_name):
-        self._good = 0
-        self._count = 0
-        self._latency_name = latency_name
-
-    def update(self, session):
+def is_contigous(session, latency_name):
         lookups = session["_lookups"]
         assert len(lookups) == 1
 
-        self._count += 1
-
         if len(lookups[0]["suggestions"]) == 0:
-            return
+            return True
 
         pairs = [
-            (suggestion[self._latency_name], (suggestion["contributor"], suggestion["contributorKind"]))
+            (suggestion[latency_name], (suggestion["contributor"], suggestion["contributorKind"]))
             for suggestion in lookups[0]["suggestions"]
         ]
         pairs.sort()
@@ -130,17 +122,28 @@ class ContiguousKinds(Metric):
         ]
         counter = collections.Counter(kinds)
 
-        # if self._latency_name == "createdLatency" and counter.most_common(1)[0][1] == 1:
-        #     for pair in pairs:
-        #         print(pair)
+        # if latency_name == "createdLatency" and counter.most_common(1)[0][1] == 1:
+        #     # for pair in pairs:
+        #     #     print(pair)
         #     ## import pprint
         #     ## pprint.pprint( sorted([(item["createdLatency"], item["text"], item["contributorKind"]) for item in lookups[0]["suggestions"]]))
         #     ## import pprint; pprint.pprint( sorted([(item["createdLatency"], item["resultsetLatency"], item["lookupLatency"], item["indicatorLatency"], item["renderedLatency"], item["contributorKind"], item["text"]) for item in lookups[0]["suggestions"]]), width=300)
         #     ## import pprint; pprint.pprint( sorted([(item["createdLatency"], item["resultsetLatency"], item["lookupLatency"], item["contributorKind"], item["text"]) for item in lookups[0]["suggestions"]]), width=300)
+        #     import pprint; pprint.pprint( sorted([(item["createdLatency"], item["resultsetLatency"], item["lookupLatency"], item["contributorKind"], item["text"]) for item in lookups[0]["suggestions"]]), width=300)
         #     import ipdb; ipdb.set_trace(context=15)
 
-        self._good += counter.most_common(1)[0][1] == 1
+        return counter.most_common(1)[0][1] == 1
 
+
+class ContiguousKinds(Metric):
+    def __init__(self, latency_name):
+        self._good = 0
+        self._count = 0
+        self._latency_name = latency_name
+
+    def update(self, session):
+        self._count += 1
+        self._good += is_contigous(session, self._latency_name)
 
     def print(self):
         ratio = self._good / self._count if self._count else 0
@@ -161,6 +164,41 @@ class MeanPopupLatency(Metric):
     def print(self):
         ratio = self._total_popup_latency / self._count if self._count else 0
         print(f"mean popup latency: {ratio:.3f} ({self._total_popup_latency} / {self._count})")
+
+
+class MeanOracleMinLatency(Metric):
+    def __init__(self):
+        self._total_latency = 0
+        self._count = 0
+        self._skipped = 0
+
+    def update(self, session):
+        lookups = session["_lookups"]
+        assert len(lookups) == 1
+
+        if not check(session):
+            self._skipped += 1
+            return
+
+        latency = self._calc_latency(session["expectedText"], lookups[0])
+        if latency:
+            self._total_latency += latency
+            self._count += 1
+        else:
+            self._skipped += 1
+
+    def _calc_latency(self, text, lookup):
+        kinds = [
+            suggestion["lookupLatency"]
+            for suggestion in lookup["suggestions"]
+            if text == suggestion["text"]
+        ]
+        if latencies:
+            return min(latencies)
+
+    def print(self):
+        ratio = self._total_latency / self._count if self._count else 0
+        print(f"min oracle latency: {ratio:.3f} ({self._total_latency:.3f} / {self._count}, skpped = {self._skipped})")
 
 
 class MeanOracleMinLatency(Metric):
