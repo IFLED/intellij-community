@@ -4,13 +4,13 @@ import os
 import sys
 
 
-def get_variants(session, delay_ms=None):
+def get_variants(session, delay_ms=None, latency_name="createdLatency"):
     assert len(session["_lookups"]) == 1
     lookup = session["_lookups"][0]
 
     if delay_ms:
         latencies = [
-            suggestion["lookupLatency"]
+            suggestion[latency_name]
             for suggestion in lookup["suggestions"]
         ]
 
@@ -22,7 +22,7 @@ def get_variants(session, delay_ms=None):
         return [
             suggestion["text"]
             for suggestion in lookup["suggestions"]
-            if suggestion["lookupLatency"] <= min_latency + delay_ms
+            if suggestion[latency_name] <= min_latency + delay_ms
         ]
 
     return [
@@ -166,46 +166,13 @@ class MeanPopupLatency(Metric):
         print(f"mean popup latency: {ratio:.3f} ({self._total_popup_latency} / {self._count})")
 
 
-class MeanOracleMinLatency(Metric):
-    def __init__(self):
+class MeanOptimisticOracleLatency(Metric):
+    def __init__(self, label, agg):
         self._total_latency = 0
         self._count = 0
         self._skipped = 0
-
-    def update(self, session):
-        lookups = session["_lookups"]
-        assert len(lookups) == 1
-
-        if not check(session):
-            self._skipped += 1
-            return
-
-        latency = self._calc_latency(session["expectedText"], lookups[0])
-        if latency:
-            self._total_latency += latency
-            self._count += 1
-        else:
-            self._skipped += 1
-
-    def _calc_latency(self, text, lookup):
-        kinds = [
-            suggestion["lookupLatency"]
-            for suggestion in lookup["suggestions"]
-            if text == suggestion["text"]
-        ]
-        if latencies:
-            return min(latencies)
-
-    def print(self):
-        ratio = self._total_latency / self._count if self._count else 0
-        print(f"min oracle latency: {ratio:.3f} ({self._total_latency:.3f} / {self._count}, skpped = {self._skipped})")
-
-
-class MeanOracleMinLatency(Metric):
-    def __init__(self):
-        self._total_latency = 0
-        self._count = 0
-        self._skipped = 0
+        self._label = label
+        self._agg = agg
 
     def update(self, session):
         lookups = session["_lookups"]
@@ -220,79 +187,17 @@ class MeanOracleMinLatency(Metric):
 
     def _calc_latency(self, text, lookup):
         latencies = [
-            suggestion["lookupLatency"]
+            suggestion["createdLatency"]
             for suggestion in lookup["suggestions"]
             if text == suggestion["text"]
         ]
         if latencies:
-            return min(latencies)
+            return self._agg(latencies)
 
     def print(self):
         ratio = self._total_latency / self._count if self._count else 0
-        print(f"min oracle latency: {ratio:.3f} ({self._total_latency:.3f} / {self._count}, skpped = {self._skipped})")
+        print(f"{self._label} optimistic oracle latency: {ratio:.3f} ({self._total_latency:.3f} / {self._count}, skpped = {self._skipped})")
 
-
-class MeanOracleMaxLatency(Metric):
-    def __init__(self):
-        self._total_latency = 0
-        self._count = 0
-        self._skipped = 0
-
-    def update(self, session):
-        lookups = session["_lookups"]
-        assert len(lookups) == 1
-
-        latency = self._calc_latency(session["expectedText"], lookups[0])
-        if latency:
-            self._total_latency += latency
-            self._count += 1
-        else:
-            self._skipped += 1
-
-    def _calc_latency(self, text, lookup):
-        latencies = [
-            suggestion["lookupLatency"]
-            for suggestion in lookup["suggestions"]
-            if text == suggestion["text"]
-        ]
-        if latencies:
-            return max(latencies)
-
-    def print(self):
-        ratio = self._total_latency / self._count if self._count else 0
-        print(f"max oracle latency: {ratio:.3f} ({self._total_latency:.3f} / {self._count}, skpped = {self._skipped})")
-
-
-class MeanOracleMeanLatency(Metric):
-    def __init__(self):
-        self._total_latency = 0
-        self._count = 0
-        self._skipped = 0
-
-    def update(self, session):
-        lookups = session["_lookups"]
-        assert len(lookups) == 1
-
-        latency = self._calc_latency(session["expectedText"], lookups[0])
-        if latency:
-            self._total_latency += latency
-            self._count += 1
-        else:
-            self._skipped += 1
-
-    def _calc_latency(self, text, lookup):
-        latencies = [
-            suggestion["lookupLatency"]
-            for suggestion in lookup["suggestions"]
-            if text == suggestion["text"]
-        ]
-        if latencies:
-            return sum(latencies) / len(latencies)
-
-    def print(self):
-        ratio = self._total_latency / self._count if self._count else 0
-        print(f"mean oracle latency: {ratio:.3f} ({self._total_latency:.3f} / {self._count}, skpped = {self._skipped})")
-        
 
 class MeanApproxLatency(Metric):
     def __init__(self, delay_ms):
@@ -314,7 +219,7 @@ class MeanApproxLatency(Metric):
 
     def _calc_latency(self, text, lookup):
         latencies = [
-            suggestion["lookupLatency"]
+            suggestion["createdLatency"]
             for suggestion in lookup["suggestions"]
         ]
 
@@ -342,9 +247,9 @@ def make_all_metrics():
         ContiguousKinds("lookupLatency"),
         ContiguousKinds("renderedLatency"),
         MeanPopupLatency(),
-        MeanOracleMinLatency(),
-        MeanOracleMeanLatency(),
-        MeanOracleMaxLatency(),
+        MeanOptimisticOracleLatency("min", min),
+        MeanOptimisticOracleLatency("mean", lambda xs: sum(xs) / max(len(xs), 1)),
+        MeanOptimisticOracleLatency("max", max),
         MeanApproxLatency(delay_ms=0),
         ContributorKindRecall(),
     ]
