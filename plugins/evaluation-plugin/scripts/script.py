@@ -83,6 +83,40 @@ class ContributorKindRecall(Metric):
             print(f"    {ratio:.3f} ({cnt} / {self._count}) - {kind}")
 
 
+def calc_latencies(lookup):
+    if len(lookup["suggestions"]) == 0:
+        return
+
+    def make_key(suggestion):
+        return suggestion["contributor"], suggestion["contributorKind"]
+
+    pairs = [
+        (suggestion["createdLatency"], make_key(suggestion))
+        for suggestion in lookup["suggestions"]
+    ]
+    pairs.sort()
+
+    begin_ms = {}
+    latency_ms = {}
+    for ind, (latency, key) in enumerate(pairs):
+        if ind == 0:
+            begin_ms[key] = 0
+
+        if ind > 0:
+            prev_latency, prev_key = pairs[ind-1]
+            if key != prev_key:
+                if key in begin_ms:
+                    # this key is not contiguous, skipping
+                    return
+
+                latency_ms[prev_key] = prev_latency - begin_ms[prev_key]
+                begin_ms[key] = prev_latency
+
+        if ind == len(pairs) - 1:
+            latency_ms[key] = latency - begin_ms[key]
+    return latency_ms
+
+
 class ContributorKindDuration(Metric):
     def __init__(self):
         self._kinds = collections.Counter()
@@ -98,39 +132,10 @@ class ContributorKindDuration(Metric):
         assert len(lookups) == 1
         lookup = lookups[0]
 
-        if len(lookup["suggestions"]) == 0:
+        latency_ms = calc_latencies(lookup)
+        if not latency_ms:
             self._skipped += 1
             return
-
-        def make_key(suggestion):
-            return suggestion["contributor"], suggestion["contributorKind"]
-
-        pairs = [
-            (suggestion["createdLatency"], make_key(suggestion))
-            for suggestion in lookup["suggestions"]
-        ]
-        pairs.sort()
-
-        begin_ms = {}
-        latency_ms = {}
-        for ind, (latency, key) in enumerate(pairs):
-            if ind == 0:
-                begin_ms[key] = 0
-
-            if ind > 0:
-                prev_latency, prev_key = pairs[ind-1]
-                if key != prev_key:
-                    if key in begin_ms:
-                        # this key is not contiguous, skipping
-                        self._skipped += 1
-                        return
-
-                    latency_ms[prev_key] = prev_latency - begin_ms[prev_key]
-                    begin_ms[key] = prev_latency
-
-            if ind == len(pairs) - 1:
-                latency_ms[key] = latency - begin_ms[key]
-
 
         for kind, latency in latency_ms.items():
             self._kinds[kind] += 1
@@ -143,7 +148,7 @@ class ContributorKindDuration(Metric):
             tuples.append((avg_duration, latency, self._kinds[kind], kind))
         tuples.sort(reverse=True)
 
-        print(f"duration by contributor kinds:")
+        print(f"duration by contributor kinds (skipped = {self._skipped}):")
         for avg, latency, cnt, kind in tuples:
             print(f"    {avg:.3f} ({latency} / {cnt}) - {kind}")
 
