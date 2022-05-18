@@ -474,6 +474,8 @@ def make_all_metrics():
         ContiguousApproxRecall(delay_ms=100),
         ApproxRecall(delay_ms=200),
         ContiguousApproxRecall(delay_ms=200),
+        ApproxRecall(delay_ms=250),
+        ContiguousApproxRecall(delay_ms=250),
         ContiguousKinds("createdLatency"),
         ContiguousKinds("resultsetLatency"),
         ContiguousKinds("indicatorLatency"),
