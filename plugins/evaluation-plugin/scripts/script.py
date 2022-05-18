@@ -103,7 +103,7 @@ class ApproxRecall(Metric):
         print(f"approx recall ({self._delay_ms}ms): {ratio:.3f} ({self._found} / {self._count})")
 
 
-def is_contigous(session, latency_name):
+def is_contiguous(session, latency_name):
         lookups = session["_lookups"]
         assert len(lookups) == 1
 
@@ -143,7 +143,7 @@ class ContiguousKinds(Metric):
 
     def update(self, session):
         self._count += 1
-        self._good += is_contigous(session, self._latency_name)
+        self._good += is_contiguous(session, self._latency_name)
 
     def print(self):
         ratio = self._good / self._count if self._count else 0
@@ -196,7 +196,73 @@ class MeanOptimisticOracleLatency(Metric):
 
     def print(self):
         ratio = self._total_latency / self._count if self._count else 0
-        print(f"{self._label} optimistic oracle latency: {ratio:.3f} ({self._total_latency:.3f} / {self._count}, skpped = {self._skipped})")
+        print(f"{self._label} optimistic oracle latency: {ratio:.3f} ({self._total_latency:.3f} / {self._count}, skipped = {self._skipped})")
+
+
+class MeanReorderOracleLatency(Metric):
+    def __init__(self, label, agg):
+        self._total_latency = 0
+        self._count = 0
+        self._skipped = 0
+        self._label = label
+        self._agg = agg
+
+    def update(self, session):
+        lookups = session["_lookups"]
+        assert len(lookups) == 1
+
+        latency = self._calc_latency(session["expectedText"], lookups[0])
+        if latency:
+            self._total_latency += latency
+            self._count += 1
+        else:
+            self._skipped += 1
+
+    def _calc_latency(self, text, lookup):
+        if len(lookup["suggestions"]) == 0:
+            return None
+
+        def make_key(suggestion):
+            return suggestion["contributor"], suggestion["contributorKind"]
+
+        pairs = [
+            (suggestion["createdLatency"], make_key(suggestion))
+            for suggestion in lookup["suggestions"]
+        ]
+        pairs.sort()
+
+        begin_ms = {}
+        latency_ms = {}
+        for ind, (latency, key) in enumerate(pairs):
+            if ind == 0:
+                begin_ms[key] = 0
+
+            if ind > 0:
+                prev_latency, prev_key = pairs[ind-1]
+                if key != prev_key:
+                    if key in begin_ms:
+                        # this key is not contiguous, skipping
+                        return None
+
+                    latency_ms[prev_key] = prev_latency - begin_ms[prev_key]
+                    begin_ms[key] = prev_latency
+
+            if ind == len(pairs) - 1:
+                latency_ms[key] = latency - begin_ms[key]
+
+        latencies = [
+            latency_ms[make_key(suggestion)]
+            for suggestion in lookup["suggestions"]
+            if text == suggestion["text"]
+        ]
+        if latencies:
+            return self._agg(latencies)
+        else:
+            return None
+
+    def print(self):
+        ratio = self._total_latency / self._count if self._count else 0
+        print(f"{self._label} reorder oracle latency: {ratio:.3f} ({self._total_latency:.3f} / {self._count}, skipped = {self._skipped})")
 
 
 class MeanApproxLatency(Metric):
@@ -232,7 +298,7 @@ class MeanApproxLatency(Metric):
 
     def print(self):
         ratio = self._total_latency / self._count if self._count else 0
-        print(f"mean approx latency ({self._delay_ms}ms): {ratio:.3f} ({self._total_latency:.3f} / {self._count}, skpped = {self._skipped})")
+        print(f"mean approx latency ({self._delay_ms}ms): {ratio:.3f} ({self._total_latency:.3f} / {self._count}, skipped = {self._skipped})")
 
 
 def make_all_metrics():
@@ -248,8 +314,11 @@ def make_all_metrics():
         ContiguousKinds("renderedLatency"),
         MeanPopupLatency(),
         MeanOptimisticOracleLatency("min", min),
-        MeanOptimisticOracleLatency("mean", lambda xs: sum(xs) / max(len(xs), 1)),
+        MeanOptimisticOracleLatency("avg", lambda xs: sum(xs) / max(len(xs), 1)),
         MeanOptimisticOracleLatency("max", max),
+        MeanReorderOracleLatency("min", min),
+        MeanReorderOracleLatency("avg", lambda xs: sum(xs) / max(len(xs), 1)),
+        MeanReorderOracleLatency("max", max),
         MeanApproxLatency(delay_ms=0),
         ContributorKindRecall(),
     ]
