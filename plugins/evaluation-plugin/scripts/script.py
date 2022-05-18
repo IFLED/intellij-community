@@ -57,6 +57,30 @@ class Recall(Metric):
         print(f"recall: {ratio:.3f} ({self._found} / {self._count})")
 
 
+class ContiguousRecall(Metric):
+    def __init__(self):
+        self._found = 0
+        self._count = 0
+        self._skipped = 0
+
+    def update(self, session):
+        if not session["is_contiguous"]:
+            self._skipped += 1
+            return
+
+        text = session["expectedText"]
+        variants = get_variants(session)
+
+        found = text in variants
+
+        self._found += found
+        self._count += 1
+
+    def print(self):
+        ratio = self._found / self._count if self._count else 0
+        print(f"contiguous recall (skipped = {self._skipped}): {ratio:.3f} ({self._found} / {self._count})")
+
+
 class ContributorKindRecall(Metric):
     def __init__(self):
         self._kinds = collections.Counter()
@@ -85,7 +109,7 @@ class ContributorKindRecall(Metric):
 
 def calc_latencies(lookup):
     if len(lookup["suggestions"]) == 0:
-        return
+        return {}
 
     def make_key(suggestion):
         return suggestion["contributor"], suggestion["contributorKind"]
@@ -106,8 +130,8 @@ def calc_latencies(lookup):
             prev_latency, prev_key = pairs[ind-1]
             if key != prev_key:
                 if key in begin_ms:
-                    # this key is not contiguous, skipping
-                    return
+                    # this key is not contiguous
+                    return None
 
                 latency_ms[prev_key] = prev_latency - begin_ms[prev_key]
                 begin_ms[key] = prev_latency
@@ -132,8 +156,8 @@ class ContributorKindDuration(Metric):
         assert len(lookups) == 1
         lookup = lookups[0]
 
-        latency_ms = calc_latencies(lookup)
-        if not latency_ms:
+        latency_ms = session["latencies"]
+        if latency_ms is None:
             self._skipped += 1
             return
 
@@ -171,6 +195,31 @@ class ApproxRecall(Metric):
     def print(self):
         ratio = self._found / self._count if self._count else 0
         print(f"approx recall ({self._delay_ms}ms): {ratio:.3f} ({self._found} / {self._count})")
+
+
+class ContiguousApproxRecall(Metric):
+    def __init__(self, delay_ms):
+        self._found = 0
+        self._count = 0
+        self._delay_ms = delay_ms
+        self._skipped = 0
+
+    def update(self, session):
+        if not session["is_contiguous"]:
+            self._skipped += 1
+            return
+
+        text = session["expectedText"]
+        variants = get_variants(session, self._delay_ms)
+
+        found = text in variants
+
+        self._found += found
+        self._count += 1
+
+    def print(self):
+        ratio = self._found / self._count if self._count else 0
+        print(f"contiguous approx recall ({self._delay_ms}ms, skipped = {self._skipped}): {ratio:.3f} ({self._found} / {self._count})")
 
 
 def is_contiguous(session, latency_name):
@@ -371,12 +420,60 @@ class MeanApproxLatency(Metric):
         print(f"mean approx latency ({self._delay_ms}ms): {ratio:.3f} ({self._total_latency:.3f} / {self._count}, skipped = {self._skipped})")
 
 
+class BaselineMetric(Metric):
+    def __init__(self):
+        self._total_latency = 0
+        self._count = 0
+        self._skipped = 0
+        self._found = 0
+
+    def update(self, session):
+        lookups = session["_lookups"]
+        assert len(lookups) == 1
+
+        latencies = session["latencies"]
+        if latencies is None and session["is_contiguous"]:
+            import ipdb; ipdb.set_trace(context=15)
+        if latencies is None:
+            self._skipped += 1
+            return
+
+        self._count += 1
+        for kind in [
+            ('KotlinCompletionContributor', 'kinds-descriptor-BasicCompletionSession.kt:859-LookupElementsCollector.kt:91'),
+            ('KotlinCompletionContributor', 'kind-OverridesCompletion.kt:79'),
+            ('KotlinCompletionContributor', 'kind-BasicCompletionSession.kt:711'),
+            ('KotlinCompletionContributor', 'kind-BasicCompletionSession.kt:438'),
+            ('KotlinCompletionContributor', 'kind-BasicCompletionSession.kt:445'),
+        ]:
+            if kind in latencies:
+                self._total_latency += latencies[kind]
+                text = session["expectedText"]
+                self._found += text in [
+                    suggestion["text"]
+                    for suggestion in session["_lookups"][0]["suggestions"]
+                    if kind == (suggestion["contributor"], suggestion["contributorKind"])
+                ]
+                break
+
+    def print(self):
+        print(f"baseline metrics (skipped = {self._skipped}):")
+        latency = self._total_latency / self._count if self._count else 0
+        print(f"    latency: {latency:.3f} ({self._total_latency:.3f} / {self._count})")
+        recall = self._found / self._count if self._count else 0
+        print(f"    recall: {recall:.3f} ({self._found} / {self._count})")
+
+
 def make_all_metrics():
     metrics = [
         Recall(),
+        ContiguousRecall(),
         ApproxRecall(delay_ms=50),
+        ContiguousApproxRecall(delay_ms=50),
         ApproxRecall(delay_ms=100),
+        ContiguousApproxRecall(delay_ms=100),
         ApproxRecall(delay_ms=200),
+        ContiguousApproxRecall(delay_ms=200),
         ContiguousKinds("createdLatency"),
         ContiguousKinds("resultsetLatency"),
         ContiguousKinds("indicatorLatency"),
@@ -392,6 +489,7 @@ def make_all_metrics():
         MeanApproxLatency(delay_ms=0),
         ContributorKindRecall(),
         ContributorKindDuration(),
+        BaselineMetric(),
     ]
     return metrics
 
@@ -405,6 +503,10 @@ def process_file(path, agg_metrics=None):
     print(obj["filePath"])
 
     for session in obj["sessions"]:
+        assert len(session["_lookups"]) == 1
+        session["latencies"] = calc_latencies(session["_lookups"][0])
+        session["is_contiguous"] = session["latencies"] is not None
+
         for metric in metrics:
             metric.update(session)
         if agg_metrics:
