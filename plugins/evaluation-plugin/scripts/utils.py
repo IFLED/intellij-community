@@ -127,6 +127,7 @@ def make_xy(id2feats, id2session):
 
     return xs, ys
 
+
 def make_data(xs, ys):
     data_rows = collections.defaultdict(list)
     labels_rows = collections.defaultdict(list)
@@ -232,10 +233,13 @@ def calc_metrics(id2preds, id2session):
             if pred == str(_make_key(suggestion))
         ]
 
-    return total_latency / cnt, total_found / cnt
+    return {
+        "latency": total_latency / cnt,
+        "recall": total_found / cnt,
+    }
 
 
-def calc_current_metrics(id2preds, id2session):
+def print_current_metrics(id2preds, id2session):
     total_latency = 0
     total_found = 0
     cnt = len(id2preds)
@@ -249,7 +253,6 @@ def calc_current_metrics(id2preds, id2session):
         script.MeanApproxLatency(delay_ms=100),
         script.MeanApproxLatency(delay_ms=150),
         script.MeanApproxLatency(delay_ms=200),
-        script.BaselineMetric(),
     ]
     for session_id, pred in id2preds.items():
         session = copy.deepcopy(id2session[session_id])

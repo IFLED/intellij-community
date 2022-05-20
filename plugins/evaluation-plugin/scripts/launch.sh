@@ -18,4 +18,11 @@ json=/Users/ifled/projects/csc/ide_perf_practice/detekt/completion-evaluation/20
 # done
 
 dir=/Users/ifled/projects/csc/ide_perf_practice/detekt/completion-evaluation/2022-05-02_16-55-43/data/files/jsons
-python3 script.py "$dir"
+# python3 script.py "$dir"
+
+dir=/Users/ifled/projects/csc/ide_perf_practice/detekt/completion-evaluation/2022-05-18_16-07-33/data/files/jsons
+# python3 script.py "$dir"
+
+dir1=~/projects/csc/ide_perf_practice/detekt/completion-evaluation/2022-05-18_16-07-33
+dir2=~/projects/csc/ide_perf_practice/detekt/completion-evaluation/2022-05-02_16-55-43
+# python3 test.py "$dir1" "$dir2"

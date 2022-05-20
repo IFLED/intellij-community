@@ -388,7 +388,7 @@ class MeanApproxLatency(Metric):
         print(f"mean approx latency ({self._delay_ms}ms): {ratio:.3f} ({self._total_latency:.3f} / {self._count}, skipped = {self._skipped})")
 
 
-class BaselineMetric(Metric):
+class TrickyBaselineMetric(Metric):
     def __init__(self):
         self._total_latency = 0
         self._count = 0
@@ -425,7 +425,7 @@ class BaselineMetric(Metric):
                 break
 
     def print(self):
-        print(f"baseline metrics (skipped = {self._skipped}):")
+        print(f"tricky baseline metrics (skipped = {self._skipped}):")
         latency = self._total_latency / self._count if self._count else 0
         print(f"    latency: {latency:.3f} ({self._total_latency:.3f} / {self._count})")
         recall = self._found / self._count if self._count else 0
@@ -457,9 +457,10 @@ def make_all_metrics():
         MeanReorderOracleLatency("avg", lambda xs: sum(xs) / max(len(xs), 1)),
         MeanReorderOracleLatency("max", max),
         MeanApproxLatency(delay_ms=0),
+        MeanApproxLatency(delay_ms=100),
         ContributorKindRecall(),
         ContributorKindDuration(),
-        BaselineMetric(),
+        TrickyBaselineMetric(),
     ]
     return metrics
 
