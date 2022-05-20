@@ -3,6 +3,8 @@ import json
 import os
 import sys
 
+import utils
+
 
 def get_variants(session, delay_ms=None, latency_name="createdLatency"):
     assert len(session["_lookups"]) == 1
@@ -105,40 +107,6 @@ class ContributorKindRecall(Metric):
         for kind, cnt in self._kinds.most_common():
             ratio = cnt / self._count if self._count else 0
             print(f"    {ratio:.3f} ({cnt} / {self._count}) - {kind}")
-
-
-def calc_latencies(lookup):
-    if len(lookup["suggestions"]) == 0:
-        return {}
-
-    def make_key(suggestion):
-        return suggestion["contributor"], suggestion["contributorKind"]
-
-    pairs = [
-        (suggestion["createdLatency"], make_key(suggestion))
-        for suggestion in lookup["suggestions"]
-    ]
-    pairs.sort()
-
-    begin_ms = {}
-    latency_ms = {}
-    for ind, (latency, key) in enumerate(pairs):
-        if ind == 0:
-            begin_ms[key] = 0
-
-        if ind > 0:
-            prev_latency, prev_key = pairs[ind-1]
-            if key != prev_key:
-                if key in begin_ms:
-                    # this key is not contiguous
-                    return None
-
-                latency_ms[prev_key] = prev_latency - begin_ms[prev_key]
-                begin_ms[key] = prev_latency
-
-        if ind == len(pairs) - 1:
-            latency_ms[key] = latency - begin_ms[key]
-    return latency_ms
 
 
 class ContributorKindDuration(Metric):
@@ -506,7 +474,7 @@ def process_file(path, agg_metrics=None):
 
     for session in obj["sessions"]:
         assert len(session["_lookups"]) == 1
-        session["latencies"] = calc_latencies(session["_lookups"][0])
+        session["latencies"] = utils.calc_latencies(session["_lookups"][0])
         session["is_contiguous"] = session["latencies"] is not None
 
         for metric in metrics:
