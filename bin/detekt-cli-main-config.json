@@ -1,0 +1,49 @@
+{
+  "projectPath": "/Users/ifled/projects/csc/ide_perf_practice/detekt",
+  "language": "Kotlin",
+  "outputDir": "/Users/ifled/projects/csc/ide_perf_practice/detekt/completion-evaluation",
+  "actions": {
+    "evaluationRoots": [
+      "detekt-cli/src/main"
+    ],
+    "strategy": {
+      "emulateUser": false,
+      "codeGolf": false,
+      "context": "PREVIOUS",
+      "prefix": {
+        "name": "SimplePrefix",
+        "emulateTyping": false,
+        "n": 1
+      },
+      "filters": {
+        "statementTypes": null,
+        "isStatic": null,
+        "packageRegex": null
+      }
+    }
+  },
+  "interpret": {
+    "completionType": "ML",
+    "experimentGroup": null,
+    "sessionsLimit": null,
+    "completeTokenProbability": 1.0,
+    "completeTokenSeed": null,
+    "emulationSettings": null,
+    "codeGolfSettings": null,
+    "saveLogs": true,
+    "saveFeatures": true,
+    "saveContent": false,
+    "logLocationAndItemText": false,
+    "trainTestSplit": 70
+  },
+  "reorder": {
+    "useReordering": false,
+    "title": "BASIC",
+    "features": []
+  },
+  "reports": {
+    "evaluationTitle": "ML",
+    "sessionsFilters": [],
+    "comparisonFilters": []
+  }
+}

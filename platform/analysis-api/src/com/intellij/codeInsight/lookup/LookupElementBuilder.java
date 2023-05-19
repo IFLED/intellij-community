@@ -55,6 +55,7 @@ public final class LookupElementBuilder extends LookupElement {
     myAllLookupStrings = Collections.unmodifiableSet(allLookupStrings);
     myCaseSensitive = caseSensitive;
     putUserData(LookupElement.CREATED_TIMESTAMP, System.currentTimeMillis());
+    // putUserData(LookupElement.THROWABLE, new Throwable());
   }
 
   private LookupElementBuilder(@NotNull String lookupString, @NotNull Object object) {

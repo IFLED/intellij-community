@@ -103,6 +103,7 @@ class LookupElementsCollector(
         }
 
         element.putUserDataIfAbsent(LookupElement.CONTRIBUTOR_KIND, contributorKind);
+        // element.putUserDataIfAbsent(LookupElement.THROWABLE, Throwable());
 
         if (notImported) {
             element.putUserData(NOT_IMPORTED_KEY, Unit)

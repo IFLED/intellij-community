@@ -5,10 +5,7 @@ import com.intellij.cce.actions.UserEmulator
 import com.intellij.cce.actions.selectedWithoutPrefix
 import com.intellij.cce.core.*
 import com.intellij.cce.evaluation.CodeCompletionHandlerFactory
-import com.intellij.codeInsight.completion.BaseCompletionService
-import com.intellij.codeInsight.completion.CodeCompletionHandlerBase
-import com.intellij.codeInsight.completion.CompletionProgressIndicator
-import com.intellij.codeInsight.completion.CompletionType
+import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.editorActions.CompletionAutoPopupHandler
 import com.intellij.codeInsight.lookup.*
 import com.intellij.codeInsight.lookup.Lookup
@@ -86,7 +83,7 @@ class CompletionInvokerImpl(private val project: Project,
 
     val start = System.currentTimeMillis()
     val isNew = LookupManager.getActiveLookup(editor) == null
-    val activeLookup = LookupManager.getActiveLookup(editor) ?: invokeCompletion(expectedText, prefix)
+    val activeLookup = LookupManager.getActiveLookup(editor) ?: invokeCompletion(expectedText, prefix, start)
     val latency = System.currentTimeMillis() - start
     val popupLatency = lookupShownListener.lookupShownMs - start;
     if (activeLookup == null) {
@@ -233,13 +230,13 @@ class CompletionInvokerImpl(private val project: Project,
     return "Offset: $offset, Line: ${logicalPosition.line}, Column: ${logicalPosition.column}."
   }
 
-  private fun invokeCompletion(expectedText: String, prefix: String?): LookupEx? {
+  private fun invokeCompletion(expectedText: String, prefix: String?, start: Long): LookupEx? {
     val handlerFactory = CodeCompletionHandlerFactory.findCompletionHandlerFactory(project, language)
     val handler = handlerFactory?.createHandler(completionType, expectedText, prefix) ?: object : CodeCompletionHandlerBase(completionType,
                                                                                                                             false, false,
-                                                                                                                            true) {
+                                                                                                                            true /*true false*/) {
       // Guarantees synchronous execution
-      override fun isTestingCompletionQualityMode() = true
+      override fun isTestingCompletionQualityMode() = true // true // false
       override fun lookupItemSelected(indicator: CompletionProgressIndicator?,
                                       item: LookupElement,
                                       completionChar: Char,
@@ -247,8 +244,16 @@ class CompletionInvokerImpl(private val project: Project,
         afterItemInsertion(indicator, null)
       }
     }
+
     try {
+      // val myEditor = editor!!
+      // CompletionPhase.CommittingDocuments.scheduleAsyncCompletion(myEditor, completionType, null, project, null)
       handler.invokeCompletion(project, editor)
+      var lookup = LookupManager.getActiveLookup(editor)
+      // while (lookup == null || start > lookupShownListener.lookupShownMs) {
+      //   Thread.sleep(10)
+      //   lookup = LookupManager.getActiveLookup(editor)
+      // }
     }
     catch (e: AssertionError) {
       LOG.warn("Completion invocation ended with error", e)

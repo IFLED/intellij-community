@@ -33,6 +33,7 @@ public abstract class LookupElement extends UserDataHolderBase {
   public static final Key<Long> ADD_IN_LOOKUP_TIMESTAMP = Key.create("ADD_IN_LOOKUP_TIMESTAMP");
   public static final Key<Long> RENDERED_TIMESTAMP = Key.create("RENDERED_TIMESTAMP");
   public static final Key<String> CONTRIBUTOR_KIND = Key.create("CONTRIBUTOR_KIND");
+  // public static final Key<Throwable> THROWABLE = Key.create("THROWABLE");
 
   /**
    * @return the string which will be inserted into the editor when this lookup element is chosen
